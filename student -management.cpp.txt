@@ -1,0 +1,300 @@
+/*
+STUDENT MANAGEMENT SYSTEM
+--------------------------
+Features:
+1. Add Student
+2. View All Students
+3. Search Student (by Roll No)
+4. Update Student
+5. Delete Student
+6. Save Records to File
+7. Load Records from File
+8. Exit
+
+Data is stored in "students.txt" so records persist between runs.
+*/
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <iomanip>
+#include <limits>
+
+using namespace std;
+
+// ---------------- Student Class ----------------
+class Student {
+public:
+int rollNo;
+string name;
+string department;
+int age;
+float marks;
+
+Student() {}
+
+Student(int rollNo, string name, string department, int age, float marks) {
+this->rollNo = rollNo;
+this->name = name;
+this->department = department;
+this->age = age;
+this->marks = marks;
+}
+
+// Display one student's record in table format
+void display() const {
+cout << left << setw(10) << rollNo
+<< setw(20) << name
+<< setw(15) << department
+<< setw(8) << age
+<< setw(8) << marks << endl;
+}
+
+// Convert record to a line for saving in file (CSV style)
+string toFileString() const {
+return to_string(rollNo) + "," + name + "," + department + "," +
+to_string(age) + "," + to_string(marks);
+}
+};
+
+// ---------------- Student Management System Class ----------------
+class StudentManagementSystem {
+private:
+vector<Student> students;
+const string fileName = "students.txt";
+
+public:
+StudentManagementSystem() {
+loadFromFile(); // Load existing records when program starts
+}
+
+// ---------- Add Student ----------
+void addStudent() {
+int rollNo, age;
+string name, department;
+float marks;
+
+cout << "\nEnter Roll No: ";
+cin >> rollNo;
+
+if (findStudentIndex(rollNo) != -1) {
+cout << "Student with this Roll No already exists!\n";
+return;
+}
+
+cin.ignore();
+cout << "Enter Name: ";
+getline(cin, name);
+
+cout << "Enter Department: ";
+getline(cin, department);
+
+cout << "Enter Age: ";
+cin >> age;
+
+cout << "Enter Marks: ";
+cin >> marks;
+
+students.push_back(Student(rollNo, name, department, age, marks));
+cout << "Student added successfully!\n";
+
+saveToFile(); // Auto-save after adding
+}
+
+// ---------- View All Students ----------
+void viewStudents() {
+if (students.empty()) {
+cout << "\nNo student records found.\n";
+return;
+}
+
+cout << "\n" << left << setw(10) << "Roll No" << setw(20) << "Name"
+<< setw(15) << "Department" << setw(8) << "Age" << setw(8) << "Marks" << endl;
+cout << string(61, '-') << endl;
+
+for (const auto &s : students) {
+s.display();
+}
+}
+
+// ---------- Search Student ----------
+void searchStudent() {
+int rollNo;
+cout << "\nEnter Roll No to search: ";
+cin >> rollNo;
+
+int index = findStudentIndex(rollNo);
+if (index == -1) {
+cout << "Student not found!\n";
+} else {
+cout << "\nStudent Found:\n";
+cout << left << setw(10) << "Roll No" << setw(20) << "Name"
+<< setw(15) << "Department" << setw(8) << "Age" << setw(8) << "Marks" << endl;
+cout << string(61, '-') << endl;
+students[index].display();
+}
+}
+
+// ---------- Update Student ----------
+void updateStudent() {
+int rollNo;
+cout << "\nEnter Roll No to update: ";
+cin >> rollNo;
+
+int index = findStudentIndex(rollNo);
+if (index == -1) {
+cout << "Student not found!\n";
+return;
+}
+
+cin.ignore();
+string name, department;
+int age;
+float marks;
+
+cout << "Enter New Name: ";
+getline(cin, name);
+
+cout << "Enter New Department: ";
+getline(cin, department);
+
+cout << "Enter New Age: ";
+cin >> age;
+
+cout << "Enter New Marks: ";
+cin >> marks;
+
+students[index].name = name;
+students[index].department = department;
+students[index].age = age;
+students[index].marks = marks;
+
+cout << "Student record updated successfully!\n";
+saveToFile();
+}
+
+// ---------- Delete Student ----------
+void deleteStudent() {
+int rollNo;
+cout << "\nEnter Roll No to delete: ";
+cin >> rollNo;
+
+int index = findStudentIndex(rollNo);
+if (index == -1) {
+cout << "Student not found!\n";
+return;
+}
+
+students.erase(students.begin() + index);
+cout << "Student deleted successfully!\n";
+saveToFile();
+}
+
+// ---------- Save to File ----------
+void saveToFile() {
+ofstream outFile(fileName);
+for (const auto &s : students) {
+outFile << s.toFileString() << endl;
+}
+outFile.close();
+}
+
+// ---------- Load from File ----------
+void loadFromFile() {
+ifstream inFile(fileName);
+if (!inFile) return; // File may not exist on first run
+
+students.clear();
+string line;
+
+while (getline(inFile, line)) {
+if (line.empty()) continue;
+
+int rollNo, age;
+string name, department;
+float marks;
+
+size_t pos1 = line.find(',');
+size_t pos2 = line.find(',', pos1 + 1);
+size_t pos3 = line.find(',', pos2 + 1);
+size_t pos4 = line.find(',', pos3 + 1);
+
+rollNo = stoi(line.substr(0, pos1));
+name = line.substr(pos1 + 1, pos2 - pos1 - 1);
+department = line.substr(pos2 + 1, pos3 - pos2 - 1);
+age = stoi(line.substr(pos3 + 1, pos4 - pos3 - 1));
+marks = stof(line.substr(pos4 + 1));
+
+students.push_back(Student(rollNo, name, department, age, marks));
+}
+inFile.close();
+}
+
+// ---------- Helper: Find Student Index by Roll No ----------
+int findStudentIndex(int rollNo) {
+for (size_t i = 0; i < students.size(); i++) {
+if (students[i].rollNo == rollNo) {
+return static_cast<int>(i);
+}
+}
+return -1;
+}
+};
+
+// ---------------- Utility: Clear invalid input ----------------
+void clearInputError() {
+cin.clear();
+cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
+// ---------------- Main Menu ----------------
+int main() {
+StudentManagementSystem sms;
+int choice;
+
+do {
+cout << "\n========= STUDENT MANAGEMENT SYSTEM =========\n";
+cout << "1. Add Student\n";
+cout << "2. View All Students\n";
+cout << "3. Search Student\n";
+cout << "4. Update Student\n";
+cout << "5. Delete Student\n";
+cout << "6. Exit\n";
+cout << "===============================================\n";
+cout << "Enter your choice: ";
+cin >> choice;
+
+if (cin.fail()) {
+clearInputError();
+cout << "Invalid input! Please enter a number.\n";
+continue;
+}
+
+switch (choice) {
+case 1:
+sms.addStudent();
+break;
+case 2:
+sms.viewStudents();
+break;
+case 3:
+sms.searchStudent();
+break;
+case 4:
+sms.updateStudent();
+break;
+case 5:
+sms.deleteStudent();
+break;
+case 6:
+cout << "Exiting... Records saved. Goodbye!\n";
+break;
+default:
+cout << "Invalid choice! Please try again.\n";
+}
+
+} while (choice != 6);
+
+return 0;
+}
